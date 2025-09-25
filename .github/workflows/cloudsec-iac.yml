@@ -1,0 +1,46 @@
+name: Cloud Security IaC Scan
+on:
+  workflow_call:
+    inputs:
+      project_key:
+        required: true
+        type: string
+      path:
+        required: true
+        type: string
+jobs:
+  IaC-Scan:
+    name: IaC Scan - Orca
+    runs-on: ubuntu-latest
+    steps:
+      # Vendor-recommended checkout step
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      # Vendor-recommended diagnostic step
+      - name: Listing files
+        run: |
+          echo "Listing all the files...."
+          ls -lah
+          echo "Listing .github directory..."
+          ls -lah .github/
+          echo "Listing .github/workflows directory..."
+          ls -lah .github/workflows/
+          echo "Listing production-custom-queries directory..."
+          ls -lah .github/workflows/non-production-custom-queries/
+          echo "Listing gcp-owner-role directory..."
+          ls -lah .github/workflows/non-production-custom-queries/gcp-owner-role
+
+      - name: Run Orca IaC Scan
+        uses: orcasecurity/shiftleft-iac-action@v1
+        id: orca_scan
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN_REPO }}
+          project_key: ${{ inputs.project_key }}
+          path: ${{ inputs.path }}
+          format: "cli,sarif"
+          output: "results/"
+          custom_controls: "./.github/workflows/non-production-custom-queries/gcp-owner-role"
